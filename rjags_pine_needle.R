@@ -34,10 +34,10 @@ library(fastDummies)
 
 #file.choose()
 #must set your working directory to whereever your JAGS models will be
-setwd("~")
+#setwd("~")
 
 #read in your data file(s)
-df <-read.csv(".csv", header=T) #bring in the data
+df <- read.table("metadata.txt", header=T) #bring in the data
 
 #check your data
 names(df)
