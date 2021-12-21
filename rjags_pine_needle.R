@@ -34,10 +34,11 @@ library(fastDummies)
 
 #file.choose()
 #must set your working directory to whereever your JAGS models will be
-#setwd("~")
+setwd("~/Projects/mycorrhizal removal/MeshBags/Jädraås_Gadgil_MycorrhizalTraits")
 
 #read in your data file(s)
-df <- read.table("metadata.txt", header=T) #bring in the data
+df <- read.table("metadata2.txt", sep="\t", header=T, row.names=1) #bring in the data
+df <- subset(df, treatment %in% c("C","E","T","TE"))
 
 #check your data
 names(df)
@@ -45,7 +46,26 @@ names(df)
 str(df) #check how R defines your variables
 summary(df) #check for NA's in your explanatory variables and data range
 
-df <- dummy_cols(df, select_columns = "treatment")
+litterA  <- subset(df, substrate=="Litter" & set =="A")
+litterB  <- subset(df, substrate=="Litter" & set =="B")
+
+humusA  <- subset(df, substrate=="Humus" & set =="A")
+humusB  <- subset(df, substrate=="Humus" & set =="B")
+
+### 
+
+litterA5 <- subset(litterA, incubation == "5")
+litterA17 <- subset(litterA, incubation == "17")
+
+litterB5 <- subset(litterB, incubation == "5")
+litterB17 <- subset(litterB, incubation == "17")
+
+humusA5 <- subset(humusA, incubation == "5")
+humusA17 <- subset(humusA, incubation == "17")
+
+humusB5 <- subset(humusB, incubation == "5")
+humusB17 <- subset(humusB, incubation == "17")
+
 
 #set up conditions for JAGS model
 #-----------------------------------------------------------#
@@ -53,12 +73,14 @@ df <- dummy_cols(df, select_columns = "treatment")
 #1. create the data structure
 data=NULL       #clear any old data lists that might confuse things
 data=list(
-	y=df$weight,
-	xa=df$treatment_a,
-	xb=df$treatment_b,
-	xc=df$treatment_c,
-	n.obs=length(df$weight),
-	x.pred=1:30 #if creating a range of predictions
+	t=17,
+	M0=litterA17$original_substrate_mass_g,
+	Mt=litterA17$final_substrate_g,
+	nobs=length(litterA17$set),
+	nblock=8,
+	block = litterA17$block,
+	biomass = scale(litterA17$copies_DNA_per_g_substrate)
+	#x.pred=1:30 #if creating a range of predictions
 ) 
 
 data #look at your data file and check it looks ok
@@ -72,25 +94,17 @@ data #look at your data file and check it looks ok
 
 inits=list(
 list(
-a=0.1,
-b=2
+  sigmaM = 1,
+  sigmak = 1,
+  alpha = 1, ## Change if muk is logarithmized
+  #b_sm ~ dnorm(0, 0.001)
+  #b_temp ~ dnorm(0, 0.001)
+  b_bm = 1,
+  sigmablock = 1,
+  k=rep(1,length(litterA17$substrate))
 ))
 
 ## If you have 3 chains you want to initialise then it would look like this
-
-inits=list(
-list(
-a=0.1,
-b=2
-),
-list(
-a=5,
-b=0.1
-),
-list(
-a=-5,
-b=2.5
-))
 
 
 #specify the model and compile the model
@@ -99,13 +113,13 @@ b=2.5
 
 #3. name the JAGS model file
 
-model = "name_of_JAGS_model_file.R"
+model = "JAGS_pine_needle_model.R"
 
 #4. compile the model
 
 jm = jags.model(model,
 data=data, 
-n.adapt=5000, 
+n.adapt=1000, 
 inits=inits, 
 n.chains=1) 
 
@@ -114,19 +128,20 @@ n.chains=1)
 
 #5. burn-in the model
 
-burn.in=10000
+burn.in=50000
 
 update(jm, n.iter=burn.in) #this runs the number burn-in values so the model is ready for sampling
 
 #6. generate samples from the posterior distribution CODA
 
-samples=10000
-n.thin=5
+samples=50000
+n.thin=50
 
 zc = coda.samples(jm,
-variable.names=c("a", "b"), 
+variable.names=c("sigmaM", "sigmak","alpha","b_bm","sigmablock"), 
 n.iter=samples, 
 thin=n.thin)
+
 
 #output coda data and you can summaries these or visually inspect the chains
 #if you don't know what this means read the JAGS manual or JAGS primer
