@@ -22,14 +22,14 @@ model{
   
   ## Priors:
   
-  sigmaM ~ dgamma(0.001,0.001) #change to half kauchi
-  sigmak ~ dgamma(0.001,0.001) #change to half kauchi
+  sigmaM ~ dt(0, pow(2.5,-2), 1)T(0,) #change to half-cauchy
+  sigmak ~ dt(0, pow(2.5,-2), 1)T(0,) #change to half-cauchy
   alpha ~ dnorm(0,0.001) ## Change if muk is logarithmized
   #b_sm ~ dnorm(0, 0.001)
   #b_temp ~ dnorm(0, 0.001)
   b_bm ~ dnorm(0, 0.001)
-  sigmablock ~ dnorm(0, 0.001)
-  
+  b_bm2 ~ dnorm(0, 0.001)
+  sigmablock ~ dt(0, pow(2.5,-2), 1)T(0,)
   ## likelihood: 
   
   #to do:
@@ -37,12 +37,11 @@ model{
   
   for(i in 1:nobs) {
     
-    Mt[i] ~ dnorm(muM[i], 1/sigmaM^2) # moment matching 
-    #Mt[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2) # moment matching 
-    #Mt.new[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2)   
+    Mt[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2) # moment matching
+    # Mt.new[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2)
     # muMsum <- muM + muIG
     # model for ingrowth
-    muM[i] <- M0[i]*exp(-k[i]*t) ## + ingrowth in humus decomposition model # process model for both rounds with the second time step?
+    muM[i] <- M0[i]*(exp(-k[i]*t) + S) ## + ingrowth in humus decomposition model # process model for both rounds with the second time step?
     ## t constant for now because only one timestep, if we add intermediate timestep this will change
     
     k[i] ~ dgamma(muk[i]^2/sigmak^2, muk[i]/sigmak^2)
@@ -50,7 +49,8 @@ model{
       #b_sm*soilmositure[i] + ## Should be scaled!
       # b_temp*temp[i] + ## Should be scaled! ## Only needed if two timestep model
       #b_temp_2*temp[i]^2 +
-      b_bm*biomass[i,1] ## Should be scaled!
+      b_bm*biomass[i,1] +
+      b_bm2*biomass[i,1]^2## Should be scaled!
     
   }
   
@@ -64,12 +64,12 @@ model{
   # cv.y <- sd(Mt[])/mean(Mt[ ])
   # cv.y.new <- sd(Mt.new[])/mean(Mt.new[])
   # pvalue.cv <- step(cv.y.new-cv.y)
-  
+  # 
   # mean.y <-mean(Mt[])
   # mean.y.new <-mean(Mt.new[])
   # pvalue.mean <-step(mean.y.new - mean.y)
-  #
-  # for(j in 1:n){
+  # 
+  # for(j in 1:nobs){
   #   sq[j] <- (Mt[j]-muM[j])^2
   #   sq.new[j] <- (Mt.new[j]-muM[j])^2
   # }
@@ -77,12 +77,12 @@ model{
   # fit <- sum(sq[])
   # fit.new <- sum(sq.new[])
   # pvalue <- step(fit-fit.new)     # bayesan p value
-  
+
   ## Predictions:
   
-  # for(k in 1:length(bm_pred)){
-  #   k_bm_pred <- alpha + b_bm*bm_pred[k]
-  # }
+  for(m in 1:length(bm_pred)){
+    log(k_bm_pred[m]) <- alpha + b_bm*bm_pred[m] + b_bm2*bm_pred[m]^2
+  }
   
   
 }
