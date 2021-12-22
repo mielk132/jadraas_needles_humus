@@ -24,7 +24,7 @@ model{
   
   sigmaM ~ dt(0, pow(2.5,-2), 1)T(0,) #change to half-cauchy
   sigmak ~ dt(0, pow(2.5,-2), 1)T(0,) #change to half-cauchy
-  alpha ~ dnorm(0,0.001) ## Change if muk is logarithmized
+  alpha ~ dnorm(0, 0.001) ## Change if muk is logarithmized
   #b_sm ~ dnorm(0, 0.001)
   #b_temp ~ dnorm(0, 0.001)
   b_bm ~ dnorm(0, 0.001)
@@ -41,10 +41,11 @@ model{
     # Mt.new[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2)
     # muMsum <- muM + muIG
     # model for ingrowth
-    muM[i] <- M0[i]*(exp(-k[i]*t) + S) ## + ingrowth in humus decomposition model # process model for both rounds with the second time step?
+    muM[i] <- M0[i]*max(exp(-k[i]*t), S) ## + ingrowth in humus decomposition model # process model for both rounds with the second time step?
     ## t constant for now because only one timestep, if we add intermediate timestep this will change
     
     k[i] ~ dgamma(muk[i]^2/sigmak^2, muk[i]/sigmak^2)
+    # muk[i] <- max(muk_real[i], 1/10E6)
     log(muk[i]) <- alpha + eblock[block[i]] +
       #b_sm*soilmositure[i] + ## Should be scaled!
       # b_temp*temp[i] + ## Should be scaled! ## Only needed if two timestep model
@@ -83,7 +84,6 @@ model{
   for(m in 1:length(bm_pred)){
     log(k_bm_pred[m]) <- alpha + b_bm*bm_pred[m] + b_bm2*bm_pred[m]^2
   }
-  
   
 }
 
