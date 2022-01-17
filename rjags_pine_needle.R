@@ -67,26 +67,35 @@ humusB5 <- subset(humusB, incubation == "5")
 humusB17 <- subset(humusB, incubation == "17")
 
 
+#### JULIAN ###
+
+litterA$plot <- paste0(as.character(litterA$treatment) , as.character(litterA$block))
+litterA <- na.omit(litterA)
+
 #set up conditions for JAGS model
 #-----------------------------------------------------------#
 
 #1. create the data structure
 data=NULL       #clear any old data lists that might confuse things
 data=list(
-	t=524,
+	t=litterA$incubation,
 	S=1/10000, ## (0.05 in Berg & McClaugherty 2020)
-	M0=litterA17$original_substrate_mass_g,
-	Mt=litterA17$final_substrate_g,
-	nobs=length(litterA17$set),
-	nblock=8,
-	block = as.numeric(as.character(litterA17$block)),
-	biomass = scale(litterA17$copies_DNA_per_g_substrate)
+	M0=litterA$original_substrate_mass_g, ## Why not the same for 5 and 17 months?
+	Mt=litterA$final_substrate_g,
+	nobs=nrow(litterA),
+	plot= as.numeric(as.factor(litterA$plot)),
+	block = as.numeric(litterA$block),
+	biomass = scale(litterA$copies_DNA_per_g_substrate)
 ) 
 
 data$bm_pred <- seq(min(data$biomass), max(data$biomass), 0.1)
 data #look at your data file and check it looks ok
 
-#NOTE you must use '=' inside a list, you cannot use '<-'
+## What to expect:
+
+plot(data$biomass, data$Mt/data$M0)
+abline(lm(data$Mt/data$M0 ~ data$biomass))
+summary(lm(data$Mt/data$M0 ~ data$biomass))
 
 #2. create the initial values (if not provided, JAGS will do this for you)
 #NOTE that it is a list within a list
@@ -103,18 +112,20 @@ list(
   b_bm = 0,
   b_bm2 = 0,
   sigmablock = 1,
-  k=rep(0.1,length(litterA17$substrate))
-),
-list(
-  sigmaM = 0.1,
-  sigmak = 0.1,
-  alpha = 0.001, ## Change if muk is logarithmized
-  #b_sm ~ dnorm(0, 0.001)
-  #b_temp ~ dnorm(0, 0.001)
-  b_bm = -0.5,
-  b_bm2 = -0.5,
-  sigmablock = 0.1,
-  k=rep(0.1,length(litterA17$substrate))
+  sigmaplot = 1,
+  k=rep(0.1,data$nobs)
+# ),
+# list(
+#   sigmaM = 0.1,
+#   sigmak = 0.1,
+#   alpha = 0.001, ## Change if muk is logarithmized
+#   #b_sm ~ dnorm(0, 0.001)
+#   #b_temp ~ dnorm(0, 0.001)
+#   b_bm = -0.5,
+#   b_bm2 = -0.5,
+#   sigmablock = 0.1,
+#   sigmaplot = 0.1,
+#   k=rep(0.1,data$nobs)
 ))
 
 ## If you have 3 chains you want to initialise then it would look like this
@@ -134,7 +145,7 @@ jm = jags.model(model,
 data=data, 
 n.adapt=5000, 
 inits=inits, 
-n.chains=2) 
+n.chains=1) 
 
 #note you need to adjust this code if you don't provide JAGS with inits or if you increase the number of chains you run
 
@@ -151,7 +162,7 @@ samples=50000
 n.thin=50
 
 zc = coda.samples(jm,
-variable.names=c("sigmaM", "sigmak","alpha","b_bm", "b_bm2", "sigmablock"), 
+variable.names=c("K", "sigmaM", "sigmak","alpha","b_bm", "b_bm2", "sigmablock", "sigmaplot"), 
 n.iter=samples, 
 thin=n.thin)
 
@@ -160,7 +171,7 @@ thin=n.thin)
 
 # summary(zc) #will show the mean estimate and SE and 95% CIs
 
-pdf("figures/MCMC_chains.pdf")
+pdf("figures/MCMC_chains_2tstp.pdf")
 plot(zc); gelman.plot(zc) #look at the chains to see stability and mixing
 dev.off()
 
@@ -212,7 +223,7 @@ n.iter=samples,
 thin=n.thin)
 
 #plotting prediction & 95%CIs using polygon
-pred<-summary(zj$k_bm_pred, quantile, c(.1,.5,.9))$stat #get your prediction
+pred<-summary(zj$k_bm_pred, quantile, c(.025,.5,.975))$stat #get your prediction
 x=data$bm_pred    #set your x-axis relative to your x.pred prediction
 y=pred
 plot(x,y[2,], col="blue", xlab="fungal biomass [scaled]", ylab="K [per day]", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
