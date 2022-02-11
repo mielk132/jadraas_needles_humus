@@ -28,13 +28,11 @@ model{
   #b_sm ~ dnorm(0, 0.001)
   #b_temp ~ dnorm(0, 0.001)
   b_bm ~ dnorm(0, 0.001)
-  # b_bm2 ~ dnorm(0, 0.001)
+  #b_bm2 ~ dnorm(0, 0.001)
   sigmablock ~ dt(0, pow(2.5,-2), 1)T(0,)
   sigmaplot ~ dt(0, pow(2.5,-2), 1)T(0,)
-  ## likelihood: 
   
-  #to do:
-  #t could be degree days or days. test. 
+  ## likelihood: 
   
   for(i in 1:nobs) {
     
@@ -42,10 +40,10 @@ model{
     # Mt.new[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2)
     # muMsum <- muM + muIG
     # model for ingrowth
-    # muM[i] <- M0[i]*max(exp(-k[i]*t), S) ## + ingrowth in humus decomposition model # process model for both rounds with the second time step?
-    ## t constant for now because only one timestep, if we add intermediate timestep this will change
-    ## Including two timesteps
-    muM[i] <- M0[i]*max(exp(-k[i]*t[i]), S) 
+    # muM[i] <- M0[i]*max(exp(-k[i]*t[i]), S) ## + ingrowth in humus decomposition model # old model for two time steps
+    ###t is grownig season days, could be constant if we analyze with only one time step
+ 
+    muM[i] <- M0[i]*(1+k[i]*t[i])^(-1.19) #adapted from Bosetta & Ågren 1998, Clemmensen et al. 2013
     
     k[i] ~ dgamma(muk[i]^2/sigmak^2, muk[i]/sigmak^2)
     # muk[i] <- max(muk_real[i], 1/10E6)
@@ -53,10 +51,9 @@ model{
       #b_sm*soilmositure[i] + ## Should be scaled!
       # b_temp*temp[i] + ## Should be scaled! ## Only needed if two timestep model
       #b_temp_2*temp[i]^2 +
-      b_bm*biomass[i,1] #+
-      # b_bm2*biomass[i,1]^2## Should be scaled!
-    
-  }
+      b_bm*biomass[i,1]
+      #+ b_bm2*biomass[i,1]^2  ## Should be scaled!
+    }
   
   for(j in 1:max(block)){eblock[j] ~ dnorm(0, sigmablock)}
   for(jj in 1:max(plot)){eplot[jj] ~ dnorm(0, sigmaplot)}

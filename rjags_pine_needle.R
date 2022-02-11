@@ -21,6 +21,7 @@
 #this is the R side of the analysis. The model is written in a separate file
 
 rm(list=ls()) #clear the workspace (only if you want to)
+getwd()
 dir.create("figures")
 #import libraries, data etc
 #-----------------------------------------------------------#
@@ -34,58 +35,82 @@ library(fastDummies)
 
 #file.choose()
 #must set your working directory to whereever your JAGS models will be
-# setwd("~/Projects/mycorrhizal removal/MeshBags/Jädraås_Gadgil_MycorrhizalTraits")
+setwd("~/Projects/mycorrhizal removal/MeshBags/Jädraås_Gadgil_MycorrhizalTraits")
 
 #read in your data file(s)
-df <- read.table("metadata.txt", sep="\t", header=T, row.names=1) #bring in the data
+df <- read.table("metadata3.txt", sep="\t", header=T, row.names=1) #bring in the data
 df <- subset(df, treatment %in% c("C","E","T","TE"))
-
-#check your data
+#check data
 names(df)
+
+#making new columns with amounts or percentages of certain fungal groups
+df$copies_fungi <-   df$percent_fungi*df$copies_DNA_per_g_substrate
+df$copies_asco <-    df$percent_asco*df$copies_fungi  #should be positively related to mass remaining
+df$copies_basid <-    df$percent_basid*df$copies_fungi #expecting to be neg related to mass remaining
+df$copies_leotio <-   df$percent_leotio*df$copies_fungi  #should be positively related to mass remaining
+df$copies_agaric <-   df$percent_agaric*df$copies_fungi  #expecting to be neg related to mass remaining
+df$copies_mycena <-     df$percent_mycena*df$copies_fungi  #expecting to be neg related to mass remaining
+df$copies_gymnopus <-   df$percent_gymnopus*df$copies_fungi  #expecting to be neg related to mass remaining 
+df$copies_d_acicola <-  df$percent_d_acicola*df$copies_fungi  #expecting to be pos. related to mass remaining
+df$copies_l_pinastri <- df$percent_l_pinastri*df$copies_fungi  #expecting to be neg related to mass remaining
+df$copies_g_androsaceus <- df$percent_g_androsaceus*df$copies_fungi #expecting to be pos. relat. to mass remain.
+df$copies_m_clavicularis <- df$percent_m_clavicularis*df$copies_fungi #expecting to be neg related to mass remaining
+
 # cut & paste names in here - makes it easier when setting up your JAGS data object 
 str(df) #check how R defines your variables
 summary(df) #check for NA's in your explanatory variables and data range
+df <- na.omit(df)
 
+df$plot <- paste0(as.character(df$treatment) , as.character(df$block))
+df <- na.omit(df)
+
+#separate by substrate and set
 litterA  <- subset(df, substrate=="Litter" & set =="A")
 litterB  <- subset(df, substrate=="Litter" & set =="B")
-
 humusA  <- subset(df, substrate=="Humus" & set =="A")
 humusB  <- subset(df, substrate=="Humus" & set =="B")
-
-### 
-
+# separate by incubation time
 litterA5 <- subset(litterA, incubation == "5")
 litterA17 <- subset(litterA, incubation == "17")
-
 litterB5 <- subset(litterB, incubation == "5")
 litterB17 <- subset(litterB, incubation == "17")
-
 humusA5 <- subset(humusA, incubation == "5")
 humusA17 <- subset(humusA, incubation == "17")
-
 humusB5 <- subset(humusB, incubation == "5")
 humusB17 <- subset(humusB, incubation == "17")
 
+#PLOTTING 
+#a loop for plotting percent mass remaining as y and copies or percent of the fungal group on the x axis
+my_colnames <- names(litterA) 
 
-#### JULIAN ###
+loop.vector <- 31:53
+for (i in loop.vector) {
+  
+  x <- litterA[,i]
+  y <- litterA[,(22)]
+  
+  # Apply names function
+  my_colname_x <- my_colnames[i]
+  my_colname_y <- my_colnames[22]
+  
+  plot(x,y, xlab = my_colname_x, ylab = my_colname_y)+
+  abline(lm(y ~ x))
+}
 
-litterA$plot <- paste0(as.character(litterA$treatment) , as.character(litterA$block))
-litterA <- na.omit(litterA)
 
 #set up conditions for JAGS model
 #-----------------------------------------------------------#
 
 #1. create the data structure
-data=NULL       #clear any old data lists that might confuse things
-data=list(
-	t=litterA$incubation,
-	S=1/10000, ## (0.05 in Berg & McClaugherty 2020)
-	M0=litterA$original_substrate_mass_g, ## Why not the same for 5 and 17 months?
-	Mt=litterA$final_substrate_g,
-	nobs=nrow(litterA),
-	plot= as.numeric(as.factor(litterA$plot)),
-	block = as.numeric(litterA$block),
-	biomass = scale(litterA$copies_DNA_per_g_substrate)
+data = NULL       #clear any old data lists that might confuse things
+data = list(
+	t = litterB$growing_season_days, #incubaton length (5 or 17 months)
+	M0 = litterB$original_substrate_mass_g, ## Why not the same for 5 and 17 months?
+	Mt = litterB$final_substrate_g,
+	nobs = nrow(litterB),
+	plot = as.numeric(as.factor(litterB$plot)),
+	block = as.numeric(litterB$block),
+	biomass = scale(litterB$copies_fungi)
 ) 
 
 data$bm_pred <- seq(min(data$biomass), max(data$biomass), 0.1)
@@ -105,27 +130,28 @@ summary(lm(data$Mt/data$M0 ~ data$biomass))
 inits=list(
 list(
   sigmaM = 1,
-  sigmak = 1,
+  sigmak = .5,
   alpha = 0.1, ## Change if muk is logarithmized
   #b_sm ~ dnorm(0, 0.001)
   #b_temp ~ dnorm(0, 0.001)
   b_bm = 0,
-  b_bm2 = 0,
+  #b_bm2 = 0,
   sigmablock = 1,
   sigmaplot = 1,
   k=rep(0.1,data$nobs)
-# ),
-# list(
-#   sigmaM = 0.1,
-#   sigmak = 0.1,
-#   alpha = 0.001, ## Change if muk is logarithmized
-#   #b_sm ~ dnorm(0, 0.001)
-#   #b_temp ~ dnorm(0, 0.001)
-#   b_bm = -0.5,
-#   b_bm2 = -0.5,
-#   sigmablock = 0.1,
-#   sigmaplot = 0.1,
-#   k=rep(0.1,data$nobs)
+  #t=
+),
+list(
+ sigmaM = 0.1,
+sigmak = 0.1,
+alpha = 0.001, ## Change if muk is logarithmized
+#b_sm ~ dnorm(0, 0.001)
+#b_temp ~ dnorm(0, 0.001)
+b_bm = -0.5,
+#b_bm2 = -0.5,
+sigmablock = 0.1,
+sigmaplot = 0.1,
+ k=rep(0.1,data$nobs)
 ))
 
 ## If you have 3 chains you want to initialise then it would look like this
@@ -143,9 +169,9 @@ model = "JAGS_pine_needle_model.R"
 
 jm = jags.model(model,
 data=data, 
-n.adapt=5000, 
+n.adapt=10000, 
 inits=inits, 
-n.chains=1) 
+n.chains=2) 
 
 #note you need to adjust this code if you don't provide JAGS with inits or if you increase the number of chains you run
 
@@ -162,7 +188,7 @@ samples=50000
 n.thin=50
 
 zc = coda.samples(jm,
-variable.names=c("K", "sigmaM", "sigmak","alpha","b_bm", "b_bm2", "sigmablock", "sigmaplot"), 
+variable.names=c("K", "sigmaM", "sigmak","alpha","b_bm", "sigmablock","sigmaplot"),
 n.iter=samples, 
 thin=n.thin)
 
@@ -171,7 +197,7 @@ thin=n.thin)
 
 # summary(zc) #will show the mean estimate and SE and 95% CIs
 
-pdf("figures/MCMC_chains_2tstp.pdf")
+pdf("figures/MCMC_chains_litterB_Bosetta_Ågren_linearbm.pdf")
 plot(zc); gelman.plot(zc) #look at the chains to see stability and mixing
 dev.off()
 
@@ -226,8 +252,9 @@ thin=n.thin)
 pred<-summary(zj$k_bm_pred, quantile, c(.025,.5,.975))$stat #get your prediction
 x=data$bm_pred    #set your x-axis relative to your x.pred prediction
 y=pred
-plot(x,y[2,], col="blue", xlab="fungal biomass [scaled]", ylab="K [per day]", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
+plot(x,y[2,], col="blue", xlab="fungal biomass [scaled]", ylab="K [d-1]", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
 polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("blue", alpha=0.5)) #add the 95% CIs
 lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
 lines(x,y[3,], lty="dashed", col="blue")
+
 
