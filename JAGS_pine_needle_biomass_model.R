@@ -21,9 +21,7 @@ model{
   sigmak ~ dt(0, pow(2.5,-2), 1)T(0,) #change to half-cauchy
   alpha ~ dnorm(0, 0.001) ## Change if muk is logarithmized
 
-  #b_asco ~ dnorm(0, 0.001)
-  #b_basid ~ dnorm(0, 0.001)
-  b_bm ~ dnorm(0, 0.001)
+  b_bm~ dnorm(0, 0.001)
   sigmablock ~ dt(0, pow(2.5,-2), 1)T(0,)
   
   ## likelihood: 
@@ -32,23 +30,15 @@ model{
     
     Mt[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2) # moment matching
     Mt.new[i] ~ dgamma(muM[i]^2/sigmaM^2, muM[i]/sigmaM^2)
-    # muMsum <- muM + muIG
-    # model for ingrowth
-    # muM[i] <- M0[i]*max(exp(-k[i]*t[i]), S) ## + ingrowth in humus decomposition model # old model for two time steps
-    # t = growing season days and is constant if we analyze with only one time step
- 
+
     muM[i] <- M0[i]*(1+k[i]*t[i])^(-1.19) #adapted from Bosetta & Ågren 1998, Clemmensen et al. 2013
     
     k[i] ~ dgamma(muk[i]^2/sigmak^2, muk[i]/sigmak^2)
-    # muk[i] <- max(muk_real[i], 1/10E6)
+
     log(muk[i]) <- alpha + eblock[block[i]] + b_bm*biomass[i,1]
-      #eplot[plot[i]] +
-      #b_asco*asco[i,1]+
-      #b_basid*basid[i,1] +
     }
   
   for(j in 1:max(block)){eblock[j] ~ dnorm(0, sigmablock)}
-  #for(jj in 1:max(plot)){eplot[jj] ~ dnorm(0, sigmaplot)}
   
   ## Model validation:
   
@@ -66,21 +56,21 @@ model{
   for(j in 1:nobs){
     sq[j] <- (Mt[j]-muM[j])^2
     sq.new[j] <- (Mt.new[j]-muM[j])^2
+    sq_mean[j] <- (Mt[j]-mean(Mt[]))^2 # to calculate R2
   }
 
   fit <- sum(sq[])
   fit.new <- sum(sq.new[])
   pvalue <- step(fit-fit.new)     # bayesan p value
-
+  R2 <- 1- sum(sq[])/sum(sq_mean[]) # coefficient of variation
+  #how much of the original variation in Mt is not explained by the model / mean
+  
   ## Predictions:
   
   #K <- mean(k[])
-  
-  for(k in 1:length(bm_pred)){
-   log(k_bm_pred[k]) <- alpha +  b_bm*bm_pred[k] #b_basid*bm_basid[k] + b_asco*bm_basid[k] 
-     #+ b_bm2*bm_pred[k]^2
- }
-  
+
+  for(k in 1:length(bm_pred)){ log(k_bm_pred[k]) <- alpha + b_bm*bm_pred[k] }
+
   }
   
   
