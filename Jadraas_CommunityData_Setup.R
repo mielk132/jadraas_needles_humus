@@ -71,38 +71,53 @@ str(litterOTUnew)
 litter_meta$Sample
 row.names(litterOTUnew)
 
+
+## pine needle litter
+
+#hypothesis 1
+litter_meta$copies_sap_whiterot <- rowSums(litterOTUnew[,taxa$guild == "saprotrophs white rot"])
+litter_meta$copies_sap_other <- rowSums(litterOTUnew[,taxa$guild == "saprotrophs other"])
+
+litter_meta$copies_fungi <- rowSums(litterOTUnew[,taxa$Kingdom == "Fungi"])
+
+litter_meta$copies_mycena_clavicularis <- rowSums(as.matrix(litterOTUnew[,taxa$Taxon=="Mycena_clavicularis"]))
+litter_meta$copies_ecto <- rowSums(as.matrix(litterOTUnew[,taxa$guild=="ectomycorrhizas"]))
+litter_meta$copies_ectowr <- rowSums(as.matrix(litterOTUnew[,taxa$guild=="ectomycorrhizas white rot"]))
+sum(litter_meta$copies_ectowr[litter_meta$pine == "1"])/sum(litter_meta$copies_fungi[litter_meta$pine == "1"]) #amount of white rot ectos
+
 ## humus
+
+
 humus_meta$copies_fungi <- rowSums(humusOTUnew[,taxa$Kingdom == "Fungi"])
-humus_meta$copies_asco <- rowSums(humusOTUnew[,taxa$Phylum == "Ascomycota"])
-humus_meta$copies_basid <- rowSums(humusOTUnew[,taxa$Phylum == "Basidiomycota"])
+
+#hypothesis 1
 humus_meta$copies_ecto <- rowSums(humusOTUnew[,taxa$emf == "1"])
+humus_meta$copies_ericoid <- rowSums(humusOTUnew[,taxa$guild == "ericoid mycorrhizas"])
 
-humus_meta$copies_whiterot <- rowSums(humusOTUnew[,taxa$Decay_type_template == "white_rot"])
-humus_meta$copies_whiterot_emf <- rowSums(humusOTUnew[,taxa$Decay_Lifestyle == "white_rot_ectomycorrhizal_basidiomycetes"])
-
-humus_meta$copies_ecto_whiterot <- rowSums(humusOTUnew[,taxa$guild == "ectomycorrhizas white rot"])
-humus_meta$copies_ecto_other <- rowSums(humusOTUnew[,taxa$guild == "ectomycorrhizas other"])
+#exploration 2
 humus_meta$copies_sap_whiterot <- rowSums(humusOTUnew[,taxa$guild == "saprotrophs white rot"])
+humus_meta$copies_ecto_whiterot <- rowSums(humusOTUnew[,taxa$guild == "ectomycorrhizas white rot"]) 
+
+mean(humus_meta$percent_mass_remaining[humus_meta$incubation == "5" & humus_meta$set == "B"] - humus_meta$percent_mass_remaining[humus_meta$incubation == "17" & humus_meta$set == "B"], na.rm =TRUE)
+
+sd(humus_meta$percent_mass_remaining[humus_meta$incubation == "5" & humus_meta$set == "B"] - humus_meta$percent_mass_remaining[humus_meta$incubation == "17" & humus_meta$set == "B"], na.rm =TRUE)
+
+mean(humus_meta$percent_mass_remaining[humus_meta$incubation == "5" & humus_meta$set == "B" & humus_meta$pine == "1" & humus_meta$shrub == "0"] - humus_meta$percent_mass_remaining[humus_meta$incubation == "17" & humus_meta$set == "B"& humus_meta$pine == "1" & humus_meta$shrub == "0"], na.rm =TRUE)
+
+sd(humus_meta$percent_mass_remaining[humus_meta$incubation == "5" & humus_meta$set == "B" & humus_meta$pine == "1" & humus_meta$shrub == "0"] - humus_meta$percent_mass_remaining[humus_meta$incubation == "17" & humus_meta$set == "B"& humus_meta$pine == "1" & humus_meta$shrub == "0"], na.rm =TRUE)
+
+#other interesting groups
+
+humus_meta$copies_mycena <- rowSums(humusOTUnew[,taxa$Genus== "Mycena"])
+humus_meta$copies_cortinarius <- rowSums(humusOTUnew[,taxa$Genus== "Cortinarius"])
 humus_meta$copies_sap_other <- rowSums(humusOTUnew[,taxa$guild == "saprotrophs other"])
 humus_meta$copies_moulds_yeasts <- rowSums(humusOTUnew[,taxa$guild == "moulds and yeasts"])
 humus_meta$copies_other_root <- rowSums(humusOTUnew[,taxa$guild == "other root-associates"])
-humus_meta$copies_ericoid <- rowSums(humusOTUnew[,taxa$guild == "ericoid mycorrhizas"])
 humus_meta$copies_ericoid_ecto <- rowSums(humusOTUnew[,taxa$guild == "ericoid- ectomycorrhizas"])
 humus_meta$copies_piloderma <- rowSums(as.matrix(humusOTUnew[,taxa$Taxon== "Piloderma_sphaerosporum"]))
-humus_meta$copies_cortinarius <- rowSums(humusOTUnew[,taxa$Genus== "Cortinarius"])
-humus_meta$copies_cortinarius_obtusus <- rowSums(as.matrix(humusOTUnew[,taxa$Taxon=="Cortinarius_aff._obtusus"]))
-humus_meta$copies_mycena <- rowSums(humusOTUnew[,taxa$Genus== "Mycena"])
-humus_meta$copies_cortinarius_obtusus <- rowSums(as.matrix(humusOTUnew[,taxa$Taxon=="Mycena_clavicularis"]))
-
-## pine needle litter
-litter_meta$copies_fungi <- rowSums(litterOTUnew[,taxa$Kingdom == "Fungi"])
-litter_meta$copies_asco <- rowSums(litterOTUnew[,taxa$Phylum == "Ascomycota"])
-litter_meta$copies_basid <- rowSums(litterOTUnew[,taxa$Phylum == "Basidiomycota"])
-litter_meta$copies_ecto <- rowSums(litterOTUnew[,taxa$primary_lifestyle_updated == "ectomycorrhizal"])
-litter_meta$copies_whiterot <- rowSums(litterOTUnew[,taxa$Decay_type_template == "white_rot"])
-litter_meta$copies_sap_whiterot <- rowSums(litterOTUnew[,taxa$guild == "saprotrophs white rot"])
-litter_meta$copies_sap_other <- rowSums(litterOTUnew[,taxa$guild == "saprotrophs other"])
-litter_meta$copies_mycena_clavicularis <- rowSums(as.matrix(litterOTUnew[,taxa$Taxon=="Mycena_clavicularis"]))
+humus_meta$copies_mycena_clavicularis <- rowSums(as.matrix(humusOTUnew[,taxa$Taxon=="Mycena_clavicularis"]))
+humus_meta$copies_whiterot <- rowSums(as.matrix(humusOTUnew[,taxa$Decay_type=="white rot"]))
+humus_meta$copies_suillus <- rowSums(humusOTUnew[,taxa$Genus== "Suillus"])
 
 ##
 write.csv(humus_meta, "humus_meta.csv")

@@ -186,6 +186,40 @@ hB <- ggplot(data = humusB)+
   scale_fill_manual("Treatments",values = c("#D45226","#F59B25", "#7F8A53", "#9AC287", "white"),labels = c("+Pine\n+Shrubs","+Pine\n-Shrubs","-Pine\n+Shrubs","-Pine\n-Shrubs", " Disturbed control"))
 
 
+
+#BY SET: summary for percent mass remaining for each treatment by set
+humus_summary_byset <- humus %>%
+  group_by(set, incubation, treatment, block) %>% 
+  drop_na() %>% 
+  summarize_at(c("percent_mass_remaining"), funs(mean, sd, min, max,n()))
+humusB <- humus_summary_byset[humus_summary_byset$set == "B",]
+humusB$plots <- paste(humusB$incubation,humusB$treatment, humusB$block)
+
+ggplot(data = humusB)+
+  aes(x = plots, y = mean, fill = treatment)+
+  geom_bar(stat = "identity", position=position_dodge(), color = "black")+
+  #geom_errorbar(aes(ymin = mean-se, ymax = mean+se), width = .5, position = position_dodge(.9))+
+  scale_y_continuous(limits = c(0,100),expand = (c(0,0)))+
+  labs(x = "Incubation duration (months)\n", y = "% Mass remaining",
+       title = "\nSet 2\nHumus")+
+  theme_classic()+
+  theme(axis.text.x = element_text(size = 16, color = "black", angle = 90),
+        axis.text.y = element_text(size = 16, color = "black"),
+        axis.title.x = element_text(size = 16, color = "black"),
+        axis.title.y = element_text(size = 16, color = "black"),
+        plot.title = element_text(hjust = .5,size = 16,color = "black"),
+        legend.title = element_text(size = 14, color = "black"),
+        legend.text = element_text(size = 12, color = "black"),
+        #legend.justification = c("left","top"),
+        legend.position = c("none"),
+        #panel.border= element_rect(colour = "black", size=1, fill=NA),
+        #panel.background = element_rect(colour = "black", size=1, fill=NA),
+        legend.key.size = unit(.5,"cm"))+
+  #annotate("text", x=3.25, y=16.5, label= "(a)", size = 8)+
+  scale_fill_manual("Treatments",values = c("#D45226","#F59B25", "#7F8A53", "#9AC287", "white"),labels = c("+Pine\n+Shrubs","+Pine\n-Shrubs","-Pine\n+Shrubs","-Pine\n-Shrubs", " Disturbed control"))
+
+
+
 #### combining plots
 #combining plots into display
 
