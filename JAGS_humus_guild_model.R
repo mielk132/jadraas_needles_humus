@@ -1,12 +1,5 @@
-### Target: Ecology Letters
-### Prelim Title: Gadgil effect and mycorrhizal traits in pine needles and mor layer
-
-###Authors: L A Mielke 1, J Klein 2, B Lindahl 3, R Finlay 1, A Ekblad 4, K E Clemmensen 1
-### Affiliations
-### 1 Dept Forest Mycology Plant Pathology - SLU Uppsala
-### 2 Dept Soil & Environment - SLU Uppsala
-### 3 Artdatabanken - SLU Uppsala
-### 4 Örebro University
+### Target: NewPhyt
+### Prelim Title: Mycorrhizal fungal guild interactions slow humus decomposition in a boreal forest
 
 ### Corresponding author
 ### Louis Mielke - louis.mielke@slu.se
@@ -14,28 +7,30 @@
 ###################################################################################
 
 model{
-
   
+
   ## Priors:
   alpha ~ dnorm(0, 0.001) # intercept
   beta ~ dnorm(0, 0.001) # slope
   sigma ~ dgamma(0.001,0.001) # 
+  b_ecto ~ dnorm(0, 0.001)
+  b_sap ~ dnorm(0, 0.001)
   b_ericoid ~ dnorm(0, 0.001)
-  #b_ecto ~ dnorm(0, 0.001)
-  #b_ecto_wr ~ dnorm(0, 0.001)
-  #b_sap_wr ~ dnorm(0, 0.001)
-  b_whiterot ~ dnorm(0, 0.001)
-  
+  b_molds_yeasts ~ dnorm(0, 0.001)
+  #b_archies ~ dnorm(0, 0.001)
+  #b_root_fungi ~ dnorm(0, 0.001)
   sigmablock ~ dt(0, pow(2.5,-2), 1)T(0,)
   
   ## likelihood: 
 
+  
   for(l in 1:nobs) {
    
     M[l] ~ dnorm(mu[l],1/sigma^2)
     M.new[l] ~ dnorm(mu[l],1/sigma^2)
     
-    mu[l] <- alpha + eblock[block[l]] + b_ericoid*ericoid[l,1] + b_whiterot*whiterot[l,1]
+    
+    mu[l] <- alpha + eblock[block[l]] + b_ecto*ecto[l,1] + b_sap*sap[l,1] +  b_molds_yeasts*molds_yeasts[l,1] + b_ericoid*ericoid[l,1]  #+ b_root_fungi*root_fungi[l,1] +   b_archies*archies[l,1]  
   }
   
   for(j in 1:max(block)){eblock[j] ~ dnorm(0, sigmablock)}
@@ -67,9 +62,11 @@ model{
 
   # Predictions:
 
-for(k in 1:length(bm_ericoid_pred)){mass_ericoid_pred[k] <- alpha + b_ericoid*bm_ericoid_pred[k]}
-  #for(k in 1:length(bm_ecto_pred)){mass_ecto_pred[k] <- alpha + b_ecto*bm_ecto_pred[k]}
-# for(k in 1:length(bm_sap_wr_pred)){mass_sap_wr_pred[k] <- alpha + b_sap_wr*bm_sap_wr_pred[k]}
- #for(k in 1:length(bm_ecto_wr_pred)){mass_ecto_wr_pred[k] <- alpha + b_ecto_wr*bm_ecto_wr_pred[k]}
-  for(k in 1:length(bm_whiterot_pred)){mass_whiterot_pred[k] <- alpha + b_whiterot*bm_whiterot_pred[k]}
+for(k in 1:length(bm_ecto_pred)){mass_ecto_pred[k] <- alpha + b_ecto*bm_ecto_pred[k]}
+  for(k in 1:length(bm_sap_pred)){mass_sap_pred[k] <- alpha + b_sap*bm_sap_pred[k]}
+  for(k in 1:length(bm_ericoid_pred)){mass_ericoid_pred[k] <- alpha + b_ericoid*bm_ericoid_pred[k]}
+  for(k in 1:length(bm_molds_yeasts_pred)){mass_molds_yeasts_pred[k] <- alpha + b_molds_yeasts*bm_molds_yeasts_pred[k]}
 }
+
+  #for(k in 1:length(bm_root_fungi_pred)){mass_root_fungi_pred[k] <- alpha + b_root_fungi*bm_root_fungi_pred[k]}
+  #for(k in 1:length(bm_archies_pred)){mass_archies_pred[k] <- alpha + b_archies*bm_archies_pred[k]}
