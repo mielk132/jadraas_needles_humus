@@ -1,15 +1,10 @@
-### Target: Ecology Letters / New Phyt
+### Target: New Phyt
 ### Prelim Title: Gadgil effect and mycorrhizal traits in pine needles and mor layer
 
-###Authors: L A Mielke 1, J Klein 2, B Lindahl 3, R Finlay 1, A Ekblad 4, K E Clemmensen 1
-### Affiliations
-### 1 Dept Forest Mycology Plant Pathology - SLU Uppsala
-### 2 Dept Soil & Environment - SLU Uppsala
-### 3 Artdatabanken - SLU Uppsala
-### 4 Örebro University
+###Authors: L A Mielke 1, J Klein , B Lindahl, R Finlay, A Ekblad, K E Clemmensen
 
 ### Corresponding author
-### Louis Mielke - louis.mielke@slu.se
+### Louis Mielke - louis.mielke@slu.se / louis.mielke@stir.ac.uk
 
 ###Jädraås Decomposition Community Data Setup
 
