@@ -1,26 +1,18 @@
-### Target: Ecology Letters
-### Title:
+### Target: New Phyt
+### Title: Mycorrhizal fungal guild interactions slow humus decomposition in a boreal forest
 ###
-### Authors: L A Mielke 1, B J Lindahl 2, J Klein 3, R Finlay 1, A Ekblad 4, K E Clemmensen 1
-###
-### Affiliations
-### 1 Dept Forest Mycology Plant Pathology - SLU Uppsala
-### 2 Dept Soil & Environment - SLU Uppsala
-### 3 Artdatabanken - SLU Uppsala
-### 4 Örebro University
-
 ### Corresponding author
 ### Louis Mielke
-### louis.mielke@slu.se
+### louis.mielke@stir.ac.uk
 ###
 ###
 ###
 
 ###################################################################################
 
-#this is the R side of the analysis. The model is written in a separate file
+#this is the R side of the analysis for the biomass and guild models in humus. The JAGS models are written in a separate file and are called individually
 
-rm(list=ls()) #clear the workspace (only if you want to)
+rm(list=ls()) #clear the workspace 
 getwd()
 #dir.create("figures")
 #import libraries, data etc
@@ -37,23 +29,24 @@ library(corrplot)
 library("runjags")
 
 #file.choose()
-#must set your working directory to wherever your JAGS models will be
+#must set your working directory to wherever the JAGS models will be
 setwd("~/Projects/mycorrhizal removal/MeshBags/Jädraås_Gadgil_MycorrhizalTraits")
 
 decomp_type <- "humus"
 
+#Analysis only includes 17 month set B, since there was more mycelial growth (as evident by copies of ITS - Fig 1)
+
+
+set <- "B" #second set of incubations (see Supp Fig 1)
 #set <- "A"
-set <- "B"
 
-time <- "17"
+time <- "17" #17 month incubation duration (see Supp Fig 1)
 
-
-#read in your data file(s)
+#read in data file(s)
 df <- read.csv("humus_meta.csv",header=T, row.names=1) #bring in the data
 
 #check data
 names(df)
-
 
 # cut & paste names in here - makes it easier when setting up your JAGS data object 
 str(df) #check how R defines your variables
@@ -61,25 +54,12 @@ summary(df) #check for NA's in your explanatory variables and data range
 df <- na.omit(df)
 
 #separate by substrate, set, and incubation time
-humusA17  <- subset(df, set =="A" & incubation == "17")
-humusA5  <- subset(df, set =="A" & incubation == "5")
+#humusA17  <- subset(df, set =="A" & incubation == "17")
+#humusA5  <- subset(df, set =="A" & incubation == "5")
 humusB17  <- subset(df, set =="B" & incubation == "17")
-humusB5  <- subset(df, set =="B" & incubation == "5")
-humusA  <- subset(df, set =="A")
-humusB  <- subset(df, set =="B")
-
-# 
-# humusB5 <- arrange(humusB5, treatment, block)   #missing E4
-# humusB17 <- arrange(humusB17, treatment, block)  
-# 
-# 
-# #fill E4 with mean % mass remaining for that treatment
-# humusB5_per_mass_remaining <- humusB5$percent_mass_remaining #make a vector
-# e_avg <- mean(humusB5$percent_mass_remaining[humusB5$treatment == "E"]) 
-# humusB5_per_mass_remaining <- append(humusB5_per_mass_remaining, e_avg, after = 19)
-# humusB17$humusB5_per_mass_remaining <- humusB5_per_mass_remaining 
-
-humusB17  <- filter(humusB17, treatment != "T" & treatment != "TE" & treatment != "DC")
+#humusB5  <- subset(df, set =="B" & incubation == "5")
+#humusA  <- subset(df, set =="A")
+#humusB  <- subset(df, set =="B")
 
 #set up conditions for JAGS model
 #-----------------------------------------------------------#
@@ -90,54 +70,48 @@ data = list(
   #t = rep(524, length(humusB17$start_date)), #number of growing season days 522 for 2017-2018, 524 for 2018-2019
   M0 = humusB17$original_substrate_mass_g, 
   Mt = humusB17$final_substrate_g,
-  M = humusB17$percent_mass_remaining,
+  M = humusB17$percent_loss,
   nobs = nrow(humusB17),
   #plot = as.numeric(as.factor(humusB17$plot)),
   block = as.numeric(humusB17$block),
-  biomass = scale(humusB17$copies_fungi),
-  ecto = scale(humusB17$copies_ecto),
-  ericoid = scale(humusB17$copies_ericoid),
-  sap_wr = scale(humusB17$copies_sap_whiterot),
-  ecto_wr = scale(humusB17$copies_ecto_whiterot),
-  whiterot = scale(humusB17$copies_ecto_whiterot + humusB17$copies_sap_whiterot))
 
-cor(data$sap_wr, data$ecto)
-cor(data$ecto_wr, data$ericoid)
-cor(data$ericoid, data$sap_wr)
+  #NOTE - only one model (Eq 2A or 2B) can be applied at a time
+  
+  ###### Biomass Model (Mielke et al., Equation 2A)
+  #biomass = scale(humusB17$copies_fungi),
+  
+  ###### Guild Model (Mielke et al., Equation 2B)
+  ecto = scale(humusB17$copies_ecto), #all ectos
+  sap = scale(humusB17$copies_sap_other + humusB17$copies_sap_whiterot), #all filamentous saps
+  molds_yeasts = scale(humusB17$copies_moulds_yeasts), #all moulds and yeasts
+  ericoid = scale(humusB17$copies_ericoid)
+  )
 
 #M <- cor(do.call(cbind.data.frame, data))
 #corrplot(M, method = 'number')
 
-### add new 
-data$bm_pred <- seq(min(data$biomass), max(data$biomass), 0.1)
-data$bm_ericoid_pred <- seq(min(data$ericoid), max(data$ericoid), 0.1)
+### MODEL 2A add new 
+#data$bm_pred <- seq(min(data$biomass), max(data$biomass), 0.1)
+
+#MODEL 2B
 data$bm_ecto_pred <- seq(min(data$ecto), max(data$ecto), 0.1)
-data$bm_sap_wr_pred <- seq(min(data$sap_wr), max(data$sap_wr), 0.1)
-data$bm_ecto_wr_pred <- seq(min(data$ecto_wr), max(data$ecto_wr), 0.1)
-data$bm_whiterot_pred <- seq(min(data$whiterot), max(data$whiterot), 0.1)
+data$bm_sap_pred <- seq(min(data$sap), max(data$sap), 0.1)
+data$bm_molds_yeasts_pred <- seq(min(data$molds_yeasts), max(data$molds_yeasts), 0.1)
+data$bm_ericoid_pred <- seq(min(data$ericoid), max(data$ericoid), 0.1)
 
 data #look at your data file and check it looks ok
 str(data)
 
 ##### What to expect: ####
 
+#MODEL 2B
 plot(data$ericoid,data$M)
 abline(lm(data$M ~ data$ericoid))
 summary(lm(data$M ~ data$ericoid))
 
-
 plot(data$ecto,data$M)
 abline(lm(data$M ~ data$ecto))
 summary(lm(data$M ~ data$ecto))
-
-plot(data$sap_wr,data$M)
-abline(lm(data$M ~ data$sap_wr))
-summary(lm(data$M ~ data$sap_wr))
-
-plot(data$ecto_wr,data$M)
-abline(lm(data$M ~ data$ecto_wr))
-summary(lm(data$M ~ data$ecto_wr))
-
 
 #set up conditions for JAGS model
 #-----------------------------------------------------------#
@@ -154,9 +128,8 @@ inits=list(
     b_bm = 0,
     b_ecto = .1,
     b_ericoid = .1,
-    b_whiterot = .1,
-    b_sap_wr = .1, #white rot sap 
-    b_ecto_wr = .1, #white rot ecto
+    b_molds_yeasts = .1,
+    b_sap = 0.1,
     sigmablock = 1,
     k=rep(0.1,data$nobs)
   ),
@@ -164,11 +137,10 @@ inits=list(
     sigmaM = 0.1,
     alpha = 0.001, ## Change if muk is logarithmized
     b_bm = -0.5,
+    b_ericoid = -0.5,
     b_ecto = -0.5,
-    b_ericoid = -.5,
-    b_whiterot = -.5,
-    b_sap_wr = -.5, #sap white rot fungi
-    b_ecto_wr = -.5,  # white rot ecto fungi
+    b_sap = -0.5,
+    b_molds_yeasts = -0.5,
     sigmablock = 0.1,
     k=rep(0.1,data$nobs)
   ),
@@ -177,10 +149,9 @@ inits=list(
     alpha = 0.01, ## Change if muk is logarithmized
     b_bm = -0.05,
     b_ecto = -0.05,
-    b_ericoid = -.05,
-    b_whiterot = -.05,
-    b_sap_wr = -.05, #sap white rot fungi
-    b_ecto_wr = -.05,  # white rot ecto fungi
+    b_ericoid = -0.05,
+    b_sap = -0.05,
+    b_molds_yeasts = -0.05,
     sigmablock = 0.01,
     k=rep(0.1,data$nobs)
   ))
@@ -191,9 +162,8 @@ inits=list(
 
 #3. name the JAGS model file
 
-#model = "JAGS_humus_biomass_dnorm_model.R" #total fungal biomass
-#model = "JAGS_humus_mycorrhizal_biomass_model.R" # ecto + ericoid biomass
-model = "JAGS_humus_mycorrhizal_whiterot_biomass_model.R"  # ericoid + ecto_wr + sap_wr biomass
+#model = "JAGS_humus_biomass_dnorm_model.R" #total fungal copies as a proxy for total biomass or 'fungal activity'
+model = "JAGS_humus_guild_model.R" # ecto + sap + molds + ericoid (copies)
 
 #4. compile the model
 jm = jags.model(model,
@@ -216,7 +186,7 @@ update(jm, n.iter=burn.in) #this runs the number burn-in values so the model is 
 samples=15000
 n.thin=5
 
-zc = coda.samples(jm,variable.names=c("alpha","sigmablock","R2","b_bm","b_ecto","b_ericoid","b_ecto_wr","b_sap_wr","b_whiterot"), n.iter=samples, thin=n.thin)
+zc = coda.samples(jm,variable.names=c("alpha","sigmablock","R2","b_bm","b_ecto","b_sap","b_ericoid", "b_molds_yeasts"), n.iter=samples, thin=n.thin)
 
 #output coda data and you can summaries these or visually inspect the chains
 #if you don't know what this means read the JAGS manual or JAGS primer
@@ -240,23 +210,14 @@ ecdf[["b_bm"]]
 
 #model 2
 ecdf[["b_ecto"]]
-ecdf[["b_ericoid"]]
-
-#model 3
-ecdf[["b_ericoid"]]
-ecdf[["b_whiterot"]]
-
-#
-ecdf[["b_sap_wr"]]
-ecdf[["b_ecto_wr"]]
+ecdf[["b_sap"]]
+ecdf[["b_molds_yeasts"]]
 ecdf[["b_ericoid"]]
 
 summary(zc) #will show the mean estimate and SE and 95% CIs
 
+#pdf("figures/MCMC_chains_humusB17_guild_percent_mass_loss_linear.pdf")
 
-# pdf("figures/MCMC_chains_humusB17_mass_remaining_linear_biomass_C_E.pdf")
-# pdf("figures/MCMC_chains_humusB17_mass_remaining_linear_ericoid_ecto_biomass_C_E.pdf")
-pdf("figures/MCMC_chains_humusB17_mass_remaining_linear_ericoid_ecto_sap_whiterot_biomass_C_E.pdf")
 plot(zc); gelman.plot(zc) #look at the chains to see stability and mixing
 
 
@@ -304,38 +265,43 @@ dev.off()
 #if you don't know what this means, read the JAGS manual
 
 zj = jags.samples(jm, 
-                  variable.names=c("mass_bm_pred","mass_ericoid_pred","mass_ecto_pred","mass_sap_wr_pred","mass_ecto_wr_pred"), 
+                  variable.names=c("mass_bm_pred","mass_ecto_pred", "mass_molds_yeasts_pred", "mass_sap_pred","mass_ericoid_pred"), 
                   n.iter=samples, 
                   thin=n.thin)
 
-####  BIOMASS PREDICTION #####
+c("#88CCAA", "#44AA77","#777711","#AAAA44","gray70", "gray50", "#AA7744", "#774411","pink")
+
+####  TOTAL FUNGI PREDICTION #####
 #plotting prediction & 95%CIs using polygon
-pdf(paste0("figures/Prediction",set,time,"_model_biomass_trmts_C_E.pdf"))
+#pdf(paste0("figures/Prediction",set,time,"_model.pdf"))
 
 pred<-summary(zj$mass_bm_pred, quantile, c(.025,.5,.975))$stat #get your prediction
 x=data$bm_pred #set your x-axis relative to your x.pred prediction
 y=pred
-plot(x,y[2,], col="blue", xlab="total fungal biomass [scaled]", ylab="Mass remaining (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
+plot(x,y[2,], col="blue", xlab="total fungal ITS copies [scaled]", ylab="Mass Loss (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
 polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("blue", alpha=0.5)) #add the 95% CIs
 lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
 lines(x,y[3,], lty="dashed", col="blue")
 dev.off()
 
-#### ECTO BIOMASS PREDICTION #####
-pdf(paste0("figures/Prediction",set,time,"_mycorrhizal_model_ecto_biomass_trmts_C_E.pdf"))
+#### ECTOMYCORRHIZAL PREDICTION #####
+pdf(paste0("figures/Prediction",set,time,"_guild_model_ectomycorrhizal.pdf"))
 
 #plotting prediction & 95%CIs using polygon
-pred<-summary(zj$mass_ecto_pred, quantile, c(.025,.5,.975))$stat #get your prediction
+pred<-summary(zj$mass_ecto_pred, quantile, c(.05,.5,.95))$stat #get your prediction
+pred2<-summary(zj$mass_ecto_pred, quantile, c(.30,.5,.70))$stat #get your prediction
 x=data$bm_ecto_pred    #set your x-axis relative to your x.pred prediction
 y=pred
-plot(x,y[2,], col="blue", xlab="ectomycorrhizal biomass [scaled]", ylab="Mass remaining (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
-polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("grey", alpha=0.5)) #add the 95% CIs
-lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
-lines(x,y[3,], lty="dashed", col="blue")
+y2 = pred2
+plot(x,y[2,], col="#44AA77", xlab="ectomycorrhizal copies [scaled]", ylab="Mass loss (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
+polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("grey", alpha=0.2)) #add the 95% CIs
+polygon(c(x,rev(x)), c(y2[1,], rev(y2[3,])), col=alpha("#44AA77", alpha=1)) #add the 70% CIs
+lines(x,y[1,], lty="dashed", col="#44AA77") #add edges to the polygon
+lines(x,y[3,], lty="dashed", col="#44AA77")
 dev.off()
 
-#### ERICOID BIOMASS PREDICTION #####
-pdf(paste0("figures/Prediction",set,time,"_mycorrhizal_model_ericoid_biomass_trmts_C_E_withwhiterot.pdf"))
+#### ERICOID PREDICTION #####
+pdf(paste0("figures/Prediction",set,time,"_guild_model_ericoid.pdf"))
 
 #plotting prediction & 95%CIs using polygon
 pred<-summary(zj$mass_ericoid_pred, quantile, c(.05,.5,.95))$stat #get your prediction
@@ -343,35 +309,43 @@ pred2<-summary(zj$mass_ericoid_pred, quantile, c(.30,.5,.70))$stat #get your pre
 x=data$bm_ericoid_pred    #set your x-axis relative to your x.pred prediction
 y=pred
 y2 = pred2
-plot(x,y[2,], col="blue", xlab="ericoid biomass [scaled]", ylab="Mass remaining (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
+plot(x,y[2,], col="blue", xlab="ericoid copies [scaled]", ylab="Mass loss (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
 polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("grey", alpha=0.5)) #add the 95% CIs
-polygon(c(x,rev(x)), c(y2[1,], rev(y2[3,])), col=alpha("mediumseagreen", alpha=1)) #add the 70% CIs
+polygon(c(x,rev(x)), c(y2[1,], rev(y2[3,])), col=alpha("#777711", alpha=1)) #add the 70% CIs
 #lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
 #lines(x,y[3,], lty="dashed", col="blue")
 dev.off()
 
-#### SAP WHITE ROT BIOMASS PREDICTION #####
-pdf(paste0("figures/Prediction",set,time,"_mycorrhizal_model_sap_whiterot_biomass_trmts_C_E.pdf"))
+#### SAPROTROPHIC PREDICTION #####
+
+pdf(paste0("figures/Prediction",set,time,"_guild_model_saprotrophs.pdf"))
 
 #plotting prediction & 95%CIs using polygon
-pred<-summary(zj$mass_sap_wr_pred, quantile, c(.30,.5,.70))$stat #get your prediction
-x=data$bm_sap_wr_pred    #set your x-axis relative to your x.pred prediction
+pred<-summary(zj$mass_sap_pred, quantile, c(.05,.5,.95))$stat #get your prediction
+pred2<-summary(zj$mass_sap_pred, quantile, c(.30,.5,.70))$stat #get your prediction
+x=data$bm_sap_pred    #set your x-axis relative to your x.pred prediction
 y=pred
-plot(x,y[2,], col="blue", xlab="white rot fungal biomass [scaled]", ylab="Mass remaining (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
-polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("grey", alpha=0.5)) #add the 95% CIs
-lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
-lines(x,y[3,], lty="dashed", col="blue")
+y2 = pred2
+plot(x,y[2,], col="#774411", xlab="saprotrophic ITS2 copies [scaled]", ylab="Mass Loss (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
+polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("grey", alpha=0.2)) #add the 95% CIs
+polygon(c(x,rev(x)), c(y2[1,], rev(y2[3,])), col=alpha("#774411", alpha=1)) #add the 70% CIs
+#lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
+#lines(x,y[3,], lty="dashed", col="blue")
 dev.off()
 
-#### ECTO WHITE ROT BIOMASS PREDICTION #####
-pdf(paste0("figures/Prediction",set,time,"_mycorrhizal_model_ecto_whiterot_biomass_trmts_C_E.pdf"))
+#### MOLDS YEASTS PREDICTION #####
+
+pdf(paste0("figures/Prediction",set,time,"_guild_model_molds_yeasts.pdf"))
 
 #plotting prediction & 95%CIs using polygon
-pred<-summary(zj$mass_ecto_wr_pred, quantile, c(.025,.5,.975))$stat #get your prediction
-x=data$bm_ecto_wr_pred    #set your x-axis relative to your x.pred prediction
+pred<-summary(zj$mass_molds_yeasts_pred, quantile, c(.05,.5,.95))$stat #get your prediction
+pred2<-summary(zj$mass_molds_yeasts_pred, quantile, c(.30,.5,.70))$stat #get your prediction
+x=data$bm_molds_yeasts_pred    #set your x-axis relative to your x.pred prediction
 y=pred
-plot(x,y[2,], col="blue", xlab="ecto white rot biomass [scaled]", ylab="Mass remaining (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
-polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("blue", alpha=0.5)) #add the 95% CIs
-lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
-lines(x,y[3,], lty="dashed", col="blue")
+y2 = pred2
+plot(x,y[2,], col="blue", xlab="Molds and Yeasts ITS2 copies [scaled]", ylab="Mass Loss (% of initial mass)", cex=1.4, typ="l", tck=0.03, bty="l", ylim = c(min(y[1,]), max(y[3,]))) #plot the median prediction
+polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("grey", alpha=0.5)) #add the 95% CIs
+polygon(c(x,rev(x)), c(y2[1,], rev(y2[3,])), col=alpha("dark grey", alpha=1)) #add the 70% CIs
+#lines(x,y[1,], lty="dashed", col="blue") #add edges to the polygon
+#lines(x,y[3,], lty="dashed", col="blue")
 dev.off()
