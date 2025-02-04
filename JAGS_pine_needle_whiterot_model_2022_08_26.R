@@ -1,13 +1,4 @@
-### Target: Ecology Letters
-### Prelim Title: Gadgil effect and mycorrhizal traits in pine needles and mor layer
-
-###Authors: L A Mielke 1, J Klein 2, B Lindahl 3, R Finlay 1, A Ekblad 4, K E Clemmensen 1
-### Affiliations
-### 1 Dept Forest Mycology Plant Pathology - SLU Uppsala
-### 2 Dept Soil & Environment - SLU Uppsala
-### 3 Artdatabanken - SLU Uppsala
-### 4 Örebro University
-
+### NewPhyt
 ### Corresponding author
 ### Louis Mielke - louis.mielke@slu.se
 
@@ -21,7 +12,6 @@ model{
   sigmak ~ dt(0, pow(2.5,-2), 1)T(0,) #change to half-cauchy
   alpha ~ dnorm(0, 0.001) ## Change if muk is logarithmized
 
-  #b_bm~ dnorm(0, 0.001)
   b_sap_whiterot~ dnorm(0, 0.001)
   b_sap_non_whiterot~ dnorm(0, 0.001)
   sigmablock ~ dt(0, pow(2.5,-2), 1)T(0,)
@@ -37,7 +27,7 @@ model{
     
     k[i] ~ dgamma(muk[i]^2/sigmak^2, muk[i]/sigmak^2)
     # muk[i] <- max(muk_real[i], 1/10E6) #log to keep values positive
-    log(muk[i]) <- alpha + eblock[block[i]] +	b_sap_whiterot*sap_whiterot[i,1] + b_sap_non_whiterot*sap_non_whiterot[i,1] #+ b_bm*biomass[i,1] +
+    log(muk[i]) <- alpha + eblock[block[i]] +	b_sap_whiterot*sap_whiterot[i,1] + b_sap_non_whiterot*sap_non_whiterot[i,1] 
     }
   
   for(j in 1:max(block)){eblock[j] ~ dnorm(0, sigmablock)}
