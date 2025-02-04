@@ -1187,8 +1187,3 @@ humusnmds <- ggplot(spe.plot, aes(NMDS1, NMDS2,shape = set_by_incubation, color=
 ########
 ggarrange(litternmds,humusnmds, labels = c("a)","b)"),font.label = list(size = 18, color = "black"),  legend = "right", combined.legend = TRUE, nrow = 2, vjust = 1.5)%>%
   ggexport(filename = "figures/Rplot_NMDS_Humus&Litter_FungalCommunity_Separate.pdf")
-
-
-
-
-##### Subtracting 17 month from 5 month community matrices
