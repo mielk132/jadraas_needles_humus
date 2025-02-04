@@ -1,15 +1,8 @@
-### Target: Ecology Letters
-### Prelim Title: Gadgil effect and mycorrhizal traits in pine needles and mor layer
-
-###Authors: L A Mielke 1, J Klein 2, B Lindahl 3, R Finlay 1, A Ekblad 4, K E Clemmensen 1
-### Affiliations
-### 1 Dept Forest Mycology Plant Pathology - SLU Uppsala
-### 2 Dept Soil & Environment - SLU Uppsala
-### 3 Artdatabanken - SLU Uppsala
-### 4 Örebro University
+### Target: New Phyt
+### Prelim Title: Mycorrhizal fungal guild interactions slow humus decomposition in a boreal forest
 
 ### Corresponding author
-### Louis Mielke - louis.mielke@slu.se
+### Louis Mielke - louis.mielke@stir.ac.uk
 
 ###################################################################################
 
