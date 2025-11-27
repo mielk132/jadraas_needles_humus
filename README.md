@@ -1,4 +1,7 @@
-# jadraas_experiment
+### jadraas_experiment ###
+
+#Mielke et al., 2025 https://nph.onlinelibrary.wiley.com/doi/10.1111/nph.70316
+
 #organice bags (pine needle litter and humus) incubated in two rounds (Set A and B) from 2017-2018 and 2018-2019.
 
 ---------------
@@ -53,3 +56,5 @@
 #other categories not essential for analyses: primary_lifestyle_phylum, Decay_type, Decay_Lifestyle	
 #guild_notes = literature or sequence references used to determine lifestyle, white rot capacity and guild
 #reference = UNITE Species Hypothesis (1.5%)
+
+#raw data PRJNA834027 in the Sequence Read Archive at NCBI
